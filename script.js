@@ -8,6 +8,7 @@ const searchInput = document.querySelector("#search-input");
 const noteCount = document.querySelector("#note-count");
 const clearBtn = document.querySelector("#clear-btn");
 
+const MAX_LENGTH = 200;
 const CATEGORIES = ["personal", "work", "study"];
 
 /* 2. Data array to hold the notes */
@@ -16,6 +17,19 @@ let notes = [];
 /* 3. Helper function to capitalise the first letter of a word */
 function capitalise(word) {
   return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function countMessage() {
+  if (notes.length === 0) return "You have no notes yet.";
+  if (notes.length === 1) return "You have 1 note.";
+  return `You have ${notes.length} notes.`;
+}
+
+/* Text validation to throw error message if invalid  text is provided */
+function validate(text) {
+  if (text === "") return "Please type a note first.";
+  if (text.length > MAX_LENGTH) return "Notes must be 200 characters or fewer.";
+  return "";
 }
 
 /* 4. Function to create a note element */
@@ -64,7 +78,7 @@ function render() {
   notes.forEach((note) => list.appendChild(createNoteElement(note)));
 }
 
-/* 5. Add a note */
+/* 5. Add or delete a note */
 function addNote(text, category) {
   notes.push({
     id: Date.now(),
@@ -75,17 +89,28 @@ function addNote(text, category) {
   render();
 }
 
+function deleteNote(id) {
+  notes = notes.filter((note) => note.id !== id);
+  render();
+}
+
 /*6. Event listener for the form submission */
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const text = input.value.trim();
-  if (text === "") return; // Task 4 replaces this with a proper error message
+  const problem = validate(text);
 
+  if (problem) {
+    errorMessage.textContent = problem;
+    return;
+  }
+
+  errorMessage.textContent = ""; // clear any old error
   addNote(text, categorySelect.value);
   input.value = "";
   input.focus();
 });
 
-// ---------- 7. Draw once when the page first loads ----------
+/*7. Draw once when the page first loads */
 render();
