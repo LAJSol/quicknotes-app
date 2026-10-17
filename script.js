@@ -5,14 +5,29 @@ const categorySelect = document.querySelector("#note-category");
 const list = document.querySelector("#notes-list");
 const errorMessage = document.querySelector("#error-message");
 const searchInput = document.querySelector("#search-input");
-const noteCount = document.querySelector("#note-count");
-const clearBtn = document.querySelector("#clear-btn");
+const count = document.querySelector("#note-count");
+const clearAllBtn = document.querySelector("#clear-all-btn");
 
+const STORAGE_KEY = "quicknotes";
 const MAX_LENGTH = 200;
 const CATEGORIES = ["personal", "work", "study"];
 
 /* 2. Data array to hold the notes */
-let notes = [];
+let notes = loadNotes();
+
+function loadNotes() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return []; // saved data was damaged: start fresh
+  }
+}
+
+function saveNotes() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+}
 
 /* 3. Helper function to capitalise the first letter of a word */
 function capitalise(word) {
@@ -23,6 +38,19 @@ function countMessage() {
   if (notes.length === 0) return "You have no notes yet.";
   if (notes.length === 1) return "You have 1 note.";
   return `You have ${notes.length} notes.`;
+}
+
+/* Notes that match every word typed in the search box (not case-sensitive) */
+function getVisibleNotes() {
+  const words = searchInput.value
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word !== "");
+
+  return notes.filter((note) => {
+    const text = note.text.toLowerCase();
+    return words.every((word) => text.includes(word));
+  });
 }
 
 /* Text validation to throw error message if invalid  text is provided */
@@ -67,6 +95,7 @@ function createNoteElement(note) {
   del.type = "button";
   del.textContent = "Delete";
   del.classList.add("delete-btn");
+  del.addEventListener("click", () => deleteNote(note.id));
 
   li.appendChild(body);
   li.appendChild(del);
@@ -74,8 +103,19 @@ function createNoteElement(note) {
 }
 
 function render() {
+  const visibleNotes = getVisibleNotes();
   list.replaceChildren(); // clear the old list
-  notes.forEach((note) => list.appendChild(createNoteElement(note)));
+
+  if (visibleNotes.length === 0 && searchInput.value.trim() !== "") {
+    const empty = document.createElement("li");
+    empty.classList.add("empty-message");
+    empty.textContent = "No notes match your search.";
+    list.appendChild(empty);
+  }
+
+  visibleNotes.forEach((note) => list.appendChild(createNoteElement(note)));
+  count.textContent = countMessage();
+  clearAllBtn.disabled = notes.length === 0; // nothing to clear
 }
 
 /* 5. Add or delete a note */
@@ -86,12 +126,23 @@ function addNote(text, category) {
     category: category,
     createdAt: new Date().toLocaleString(),
   });
+  saveNotes();
   render();
 }
 
 function deleteNote(id) {
   notes = notes.filter((note) => note.id !== id);
+  saveNotes();
   render();
+}
+
+/* Bonus: delete every note, but only after the user confirms */
+function clearAllNotes() {
+  if (confirm("Delete all notes?")) {
+    notes = [];
+    saveNotes();
+    render();
+  }
 }
 
 /*6. Event listener for the form submission */
