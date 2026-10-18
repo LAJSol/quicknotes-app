@@ -163,5 +163,7 @@ form.addEventListener("submit", (event) => {
   input.focus();
 });
 
+clearAllBtn.addEventListener("click", clearAllNotes);
+
 /*7. Draw once when the page first loads */
 render();
